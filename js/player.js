@@ -208,10 +208,22 @@ const Player = {
     // Dim non-speaking characters
     this.updateCharacterHighlight(cmd.characterId);
 
-    // Show name
+    // Show name plate with character color as background
     const nameEl = Utils.$('#player-char-name');
     nameEl.textContent = char ? char.name : '';
-    nameEl.style.color = char ? char.color : '';
+    const namePlate = Utils.$('#player-name-plate');
+    if (char && char.color) {
+      // Convert hex color to rgba with opacity for bg
+      const hex = char.color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      namePlate.style.background = `rgba(${r}, ${g}, ${b}, 0.80)`;
+      namePlate.style.borderColor = `rgba(${r + 60}, ${g + 60}, ${b + 60}, 0.5)`;
+    } else {
+      namePlate.style.background = '';
+      namePlate.style.borderColor = '';
+    }
 
     // Typewriter text
     this.startTypewriter(cmd.text || '');
@@ -226,6 +238,8 @@ const Player = {
 
   executeNarration(cmd) {
     Utils.$('#player-char-name').textContent = '';
+    Utils.$('#player-name-plate').style.background = '';
+    Utils.$('#player-name-plate').style.borderColor = '';
     this.updateCharacterHighlight(null);
     this.startTypewriter(cmd.text || '');
 

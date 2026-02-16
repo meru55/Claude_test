@@ -97,8 +97,12 @@
             <div class="preview-char-slot" data-position="right"></div>
           </div>
           <div id="preview-textbox">
-            <div id="preview-name">Character</div>
-            <div id="preview-text">Dialogue text appears here...</div>
+            <div id="preview-name-plate">
+              <span id="preview-name">Character</span>
+            </div>
+            <div id="preview-dialogue-wrap">
+              <div id="preview-text">Dialogue text appears here...</div>
+            </div>
           </div>
         </div>
       </div>
@@ -180,8 +184,10 @@
         <div id="player-name-plate">
           <span id="player-char-name"></span>
         </div>
-        <div id="player-dialogue"></div>
-        <div id="player-click-indicator">&#9660;</div>
+        <div id="player-dialogue-wrap">
+          <div id="player-dialogue"></div>
+          <div id="player-click-indicator">&#9660;</div>
+        </div>
       </div>
 
       <!-- Player Controls -->
@@ -306,6 +312,53 @@
       <div class="modal-footer">
         <button id="btn-export-cancel" class="btn-secondary">Cancel</button>
         <button id="btn-export-confirm" class="btn-primary">Export HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background Removal Modal -->
+  <div id="modal-bg-remove" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-bg-remove">
+      <div class="modal-header">
+        <h3>&#10024; Remove Background</h3>
+        <button class="btn-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="bgr-layout">
+          <div class="bgr-canvas-area">
+            <div class="bgr-canvas-label">Click on background color to remove</div>
+            <canvas id="bgr-canvas"></canvas>
+          </div>
+          <div class="bgr-controls">
+            <div class="form-group">
+              <label>Tolerance (色の許容範囲)</label>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input type="range" id="bgr-tolerance" min="5" max="120" value="30" style="flex:1;accent-color:var(--accent-primary);">
+                <span id="bgr-tolerance-val" style="min-width:30px;text-align:right;font-size:13px;">30</span>
+              </div>
+            </div>
+            <div class="bgr-buttons">
+              <button id="btn-bgr-auto" class="btn-primary" style="width:100%">&#128247; Auto Detect &amp; Remove</button>
+              <button id="btn-bgr-reset" class="btn-secondary" style="width:100%;margin-top:6px">&#8635; Reset</button>
+            </div>
+            <div class="bgr-tip">
+              <strong>使い方:</strong><br>
+              1. 画像の背景部分をクリックして色を指定<br>
+              2. または「Auto Detect」で自動検出<br>
+              3. Toleranceで除去範囲を調整
+            </div>
+            <div id="bgr-selected-color" class="bgr-color-display hidden">
+              <span>Selected Color:</span>
+              <span id="bgr-color-swatch"></span>
+              <button id="btn-bgr-apply-click" class="btn-primary" style="margin-top:8px;width:100%">Apply Removal</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-bgr-cancel" class="btn-secondary">Cancel</button>
+        <button id="btn-bgr-confirm" class="btn-primary">&#10003; Use This Image</button>
       </div>
     </div>
   </div>

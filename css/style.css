@@ -435,9 +435,9 @@ html, body {
 
 .preview-char-slot {
   position: absolute;
-  bottom: 25%;
+  bottom: 0;
   width: 30%;
-  height: 60%;
+  height: 80%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -459,32 +459,53 @@ html, body {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
 }
 
+/* Preview textbox - mirrors player style */
 #preview-textbox {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 25%;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,20,0.95));
-  padding: 10px 16px;
+  bottom: 8px;
+  left: 10px;
+  right: 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
+  z-index: 5;
+}
+
+#preview-name-plate {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 5px 5px 0 0;
+  border: 1px solid rgba(255,255,255,0.35);
+  border-bottom: none;
+  background: rgba(100, 60, 140, 0.82);
+  align-self: flex-start;
+  min-width: 60px;
 }
 
 #preview-name {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  color: var(--accent-secondary);
+  color: #fff;
+  white-space: nowrap;
+}
+
+#preview-dialogue-wrap {
+  background: rgba(20, 10, 50, 0.70);
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 0 6px 6px 6px;
+  padding: 6px 10px 8px;
+  backdrop-filter: blur(4px);
 }
 
 #preview-text {
-  font-size: 11px;
-  color: var(--text-primary);
+  font-size: 9px;
+  color: #f0f0f5;
   line-height: 1.5;
   overflow: hidden;
+  min-height: 2.5em;
 }
 
 /* Command Editor */
@@ -826,22 +847,22 @@ html, body {
   animation: fadeIn 0.6s ease;
 }
 
-/* Player Characters */
+/* Player Characters - full screen, extends behind textbox */
 #player-characters {
   position: absolute;
   inset: 0;
-  bottom: 200px;
+  z-index: 2;
 }
 
 .player-char {
   position: absolute;
   bottom: 0;
   width: 35%;
-  height: 85%;
+  height: 90%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition: opacity 0.4s ease;
 }
 
 .player-char[data-position="left"] {
@@ -861,15 +882,16 @@ html, body {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
+  transition: filter 0.3s ease;
 }
 
 .player-char.speaking img {
-  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5)) brightness(1.05);
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6)) brightness(1.08);
 }
 
 .player-char.dimmed img {
-  filter: drop-shadow(0 4px 20px rgba(0,0,0,0.5)) brightness(0.6);
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6)) brightness(0.55) saturate(0.7);
 }
 
 /* Effect Overlay */
@@ -918,55 +940,69 @@ html, body {
   to { opacity: 1; }
 }
 
-/* Player Text Box */
+/* Player Text Box - transparent container */
 #player-textbox {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 200px;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 20, 0.0) 0%,
-    rgba(0, 0, 20, 0.85) 15%,
-    rgba(0, 0, 20, 0.95) 100%
-  );
-  padding: 40px 60px 30px;
+  bottom: 28px;
+  left: 48px;
+  right: 48px;
   cursor: pointer;
   z-index: 10;
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  user-select: none;
 }
 
+/* Name Plate - dynamic bg color set via JS */
 #player-name-plate {
-  margin-bottom: 8px;
+  display: inline-block;
+  padding: 7px 22px;
+  border-radius: 8px 8px 0 0;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-bottom: none;
+  background: rgba(100, 60, 140, 0.82);  /* overridden per character via JS */
+  backdrop-filter: blur(6px);
+  align-self: flex-start;
+  min-width: 110px;
 }
 
 #player-char-name {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--accent-secondary);
-  text-shadow: 0 0 10px var(--accent-glow);
+  color: #fff;
   letter-spacing: 1px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+  white-space: nowrap;
+}
+
+/* Dialogue wrap - semi-transparent box */
+#player-dialogue-wrap {
+  background: rgba(20, 10, 50, 0.68);
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-radius: 0 12px 12px 12px;
+  padding: 20px 28px 24px;
+  backdrop-filter: blur(8px);
+  position: relative;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 #player-dialogue {
   font-size: 18px;
-  color: #eee;
-  line-height: 1.8;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-  flex: 1;
-  overflow: hidden;
+  color: #f0f0f5;
+  line-height: 1.85;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  min-height: 3.7em;
 }
 
 #player-click-indicator {
   position: absolute;
-  bottom: 14px;
-  right: 60px;
-  color: var(--accent-secondary);
-  font-size: 14px;
-  animation: bounce 1s ease infinite;
+  bottom: 10px;
+  right: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  animation: bounce 1.1s ease infinite;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -1455,6 +1491,110 @@ html, body {
   padding: 12px;
   background: var(--bg-tertiary);
   border-radius: 6px;
+}
+
+/* ========================================
+   Background Removal Modal
+   ======================================== */
+.modal-content.modal-bg-remove {
+  width: 780px;
+  max-width: 95vw;
+}
+
+.bgr-layout {
+  display: flex;
+  gap: 16px;
+  height: 420px;
+}
+
+.bgr-canvas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bgr-canvas-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+#bgr-canvas {
+  flex: 1;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: crosshair;
+  background: repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 0 0 / 16px 16px;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.bgr-controls {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bgr-buttons {
+  display: flex;
+  flex-direction: column;
+}
+
+.bgr-tip {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.bgr-tip strong {
+  color: var(--text-secondary);
+}
+
+.bgr-color-display {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+#bgr-color-swatch {
+  display: block;
+  width: 100%;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* Expression item - bg remove button */
+.btn-remove-bg {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgba(108, 92, 231, 0.2);
+  border: 1px solid var(--accent-primary);
+  color: var(--accent-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-remove-bg:hover {
+  background: rgba(108, 92, 231, 0.4);
+  color: white;
 }
 
 /* ========================================

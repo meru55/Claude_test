@@ -45,15 +45,15 @@ box-shadow:0 0 30px var(--accent-glow)}
 background-color:#1a1a2e;transition:opacity 0.6s ease}
 #game-bg.fade-in{animation:fadeIn 0.6s ease}
 
-#game-chars{position:absolute;inset:0;bottom:200px}
-.g-char{position:absolute;bottom:0;width:35%;height:85%;display:flex;align-items:flex-end;
-justify-content:center;transition:opacity 0.4s ease,transform 0.4s ease}
+#game-chars{position:absolute;inset:0;z-index:2}
+.g-char{position:absolute;bottom:0;width:35%;height:90%;display:flex;align-items:flex-end;
+justify-content:center;transition:opacity 0.4s ease}
 .g-char[data-pos="left"]{left:2%}
 .g-char[data-pos="center"]{left:50%;transform:translateX(-50%)}
 .g-char[data-pos="right"]{right:2%}
-.g-char img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5))}
-.g-char.speaking img{filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)) brightness(1.05)}
-.g-char.dimmed img{filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)) brightness(0.6)}
+.g-char img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 8px 24px rgba(0,0,0,0.6));transition:filter 0.3s ease}
+.g-char.speaking img{filter:drop-shadow(0 8px 24px rgba(0,0,0,0.6)) brightness(1.08)}
+.g-char.dimmed img{filter:drop-shadow(0 8px 24px rgba(0,0,0,0.6)) brightness(0.55) saturate(0.7)}
 
 #effect-overlay{position:absolute;inset:0;pointer-events:none;z-index:5}
 #effect-overlay.fade-white{animation:fadeWhite 1s ease}
@@ -74,15 +74,21 @@ background:rgba(0,0,30,0.85);color:#fff;font-size:16px;font-family:var(--font-ma
 cursor:pointer;transition:all 0.25s ease;text-align:center;backdrop-filter:blur(8px)}
 .choice-btn:hover{background:rgba(108,92,231,0.7);border-color:var(--accent2);transform:scale(1.02)}
 
-#textbox{position:absolute;bottom:0;left:0;right:0;height:200px;
-background:linear-gradient(to bottom,rgba(0,0,20,0) 0%,rgba(0,0,20,0.85) 15%,rgba(0,0,20,0.95) 100%);
-padding:40px 60px 30px;cursor:pointer;z-index:10;display:flex;flex-direction:column}
-#name-plate{margin-bottom:8px}
-#char-name{font-family:var(--font-display);font-size:20px;font-weight:700;
-color:var(--accent2);text-shadow:0 0 10px var(--accent-glow);letter-spacing:1px}
-#dialogue{font-size:18px;color:#eee;line-height:1.8;text-shadow:0 1px 3px rgba(0,0,0,0.5);flex:1;overflow:hidden}
-#click-ind{position:absolute;bottom:14px;right:60px;color:var(--accent2);font-size:14px;
-animation:bounce 1s ease infinite;opacity:0;transition:opacity 0.3s ease}
+#textbox{position:absolute;bottom:28px;left:48px;right:48px;cursor:pointer;z-index:10;
+display:flex;flex-direction:column;gap:6px;user-select:none}
+#name-plate{display:inline-block;padding:7px 22px;border-radius:8px 8px 0 0;
+border:2px solid rgba(255,255,255,0.35);border-bottom:none;
+background:rgba(100,60,140,0.82);backdrop-filter:blur(6px);
+align-self:flex-start;min-width:110px}
+#char-name{font-family:var(--font-display);font-size:18px;font-weight:700;
+color:#fff;letter-spacing:1px;text-shadow:0 1px 6px rgba(0,0,0,0.6);white-space:nowrap}
+#dialogue-wrap{background:rgba(20,10,50,0.68);border:2px solid rgba(255,255,255,0.28);
+border-radius:0 12px 12px 12px;padding:20px 28px 24px;
+backdrop-filter:blur(8px);position:relative;
+box-shadow:0 4px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.08)}
+#dialogue{color:#f0f0f5;line-height:1.85;text-shadow:0 1px 4px rgba(0,0,0,0.6);min-height:3.7em}
+#click-ind{position:absolute;bottom:10px;right:20px;color:rgba(255,255,255,0.7);font-size:12px;
+animation:bounce 1.1s ease infinite;opacity:0;transition:opacity 0.3s ease}
 #click-ind.visible{opacity:1}
 
 #controls{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:20;
@@ -141,8 +147,10 @@ ${author ? `<div class="author">by ${this.escapeHtml(author)}</div>` : '<div cla
 <div id="choices" class="hidden"></div>
 <div id="textbox">
 <div id="name-plate"><span id="char-name"></span></div>
+<div id="dialogue-wrap">
 <div id="dialogue"></div>
 <div id="click-ind">&#9660;</div>
+</div>
 </div>
 <div id="controls">
 <button class="ctrl-btn" id="btn-auto" onclick="toggleAuto()">Auto</button>
@@ -224,13 +232,24 @@ function execDialogue(c){
 const ch=findChar(c.characterId);
 if(ch&&c.position)showChar(c.characterId,c.position,c.expression||'default');
 highlightChar(c.characterId);
-const n=$('#char-name');n.textContent=ch?ch.name:'';n.style.color=ch?ch.color:'';
+const n=$('#char-name');n.textContent=ch?ch.name:'';
+const np=$('#name-plate');
+if(ch&&ch.color){
+const hx=ch.color.replace('#','');
+const r=parseInt(hx.substring(0,2),16);
+const g=parseInt(hx.substring(2,4),16);
+const b=parseInt(hx.substring(4,6),16);
+np.style.background='rgba('+r+','+g+','+b+',0.82)';
+np.style.borderColor='rgba('+(r+40)+','+(g+40)+','+(b+40)+',0.5)';
+}else{np.style.background='';np.style.borderColor='';}
 startTw(c.text||'');
 textLog.push({name:ch?ch.name:'',color:ch?ch.color:'',text:c.text||''});
 }
 
 function execNarration(c){
-$('#char-name').textContent='';highlightChar(null);
+$('#char-name').textContent='';
+const np=$('#name-plate');np.style.background='';np.style.borderColor='';
+highlightChar(null);
 startTw(c.text||'');
 textLog.push({name:'',color:'',text:c.text||''});
 }

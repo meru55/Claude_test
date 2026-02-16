@@ -8,6 +8,7 @@ const Editor = {
     this.bindCharacterControls();
     this.bindCommandToolbar();
     this.bindBgModal();
+    BgRemover.init();
   },
 
   renderAll() {
@@ -134,11 +135,13 @@ const Editor = {
         style="width:80px;font-size:11px;padding:2px 4px;text-align:center;border:1px solid var(--border);border-radius:4px;background:var(--bg-tertiary);color:var(--text-primary);"
         ${isDefault ? 'readonly' : ''}>
       <button class="btn-upload-expression btn-small">Upload</button>
+      <button class="btn-remove-bg" title="Remove background from image" style="display:${imageData ? 'inline-block' : 'none'}">&#10024; Remove BG</button>
       ${!isDefault ? '<button class="btn-remove-expr">&times;</button>' : ''}
     `;
 
     const preview = item.querySelector('.expression-preview');
     const uploadBtn = item.querySelector('.btn-upload-expression');
+    const removeBgBtn = item.querySelector('.btn-remove-bg');
 
     const handleUpload = () => {
       const input = Utils.$('#expression-file-input');
@@ -148,6 +151,7 @@ const Editor = {
         const dataUrl = await Utils.readFileAsDataURL(file);
         preview.innerHTML = `<img src="${dataUrl}" alt="${exprName}">`;
         item._imageData = dataUrl;
+        removeBgBtn.style.display = 'inline-block';
         input.value = '';
       };
       input.click();
@@ -155,6 +159,15 @@ const Editor = {
 
     preview.addEventListener('click', handleUpload);
     uploadBtn.addEventListener('click', handleUpload);
+
+    // Open background removal modal
+    removeBgBtn.addEventListener('click', () => {
+      if (!item._imageData) {
+        alert('Upload an image first.');
+        return;
+      }
+      BgRemover.open(item, item._imageData);
+    });
 
     // Set stored image data
     if (imageData) {
@@ -882,19 +895,227 @@ const Editor = {
       }
     });
 
-    // Apply text
+    // Apply text with new name plate style
+    const namePlate = Utils.$('#preview-name-plate');
     if (state.lastDialogue) {
       const char = AppState.getCharacter(state.lastDialogue.characterId);
       nameEl.textContent = char ? char.name : '???';
-      nameEl.style.color = char ? char.color : '';
       textEl.textContent = state.lastDialogue.text || '...';
+      if (char && char.color) {
+        const hex = char.color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        namePlate.style.background = `rgba(${r}, ${g}, ${b}, 0.82)`;
+      } else {
+        namePlate.style.background = '';
+      }
+      namePlate.style.display = '';
     } else if (state.lastNarration) {
       nameEl.textContent = '';
-      nameEl.style.color = '';
+      namePlate.style.display = 'none';
       textEl.textContent = state.lastNarration.text || '...';
     } else {
       nameEl.textContent = '';
+      namePlate.style.display = 'none';
       textEl.textContent = '';
     }
+  }
+};
+
+// ========================================
+// Background Removal Engine
+// ========================================
+const BgRemover = {
+  canvas: null,
+  ctx: null,
+  originalImageData: null,
+  currentImageData: null,
+  targetItem: null,   // expression-item element
+  tolerance: 30,
+  selectedColor: null,
+
+  init() {
+    this.canvas = Utils.$('#bgr-canvas');
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+
+    Utils.$('#bgr-tolerance').addEventListener('input', (e) => {
+      this.tolerance = parseInt(e.target.value);
+      Utils.$('#bgr-tolerance-val').textContent = this.tolerance;
+    });
+
+    Utils.$('#btn-bgr-auto').addEventListener('click', () => {
+      this.autoRemove();
+    });
+
+    Utils.$('#btn-bgr-reset').addEventListener('click', () => {
+      this.reset();
+    });
+
+    Utils.$('#btn-bgr-cancel').addEventListener('click', () => {
+      Utils.$('#modal-bg-remove').classList.add('hidden');
+    });
+
+    Utils.$('#btn-bgr-confirm').addEventListener('click', () => {
+      this.applyToTarget();
+    });
+
+    Utils.$('#btn-bgr-apply-click').addEventListener('click', () => {
+      if (this.selectedColor) {
+        this.removeColorByFloodFill(this.selectedColor[0], this.selectedColor[1], this.selectedColor[2]);
+      }
+    });
+
+    // Close backdrop
+    Utils.$('#modal-bg-remove .modal-backdrop').addEventListener('click', () => {
+      Utils.$('#modal-bg-remove').classList.add('hidden');
+    });
+    Utils.$('#modal-bg-remove .btn-modal-close').addEventListener('click', () => {
+      Utils.$('#modal-bg-remove').classList.add('hidden');
+    });
+
+    // Canvas click: sample color for removal
+    this.canvas.addEventListener('click', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const scaleX = this.canvas.width / rect.width;
+      const scaleY = this.canvas.height / rect.height;
+      const x = Math.floor((e.clientX - rect.left) * scaleX);
+      const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+      const pixel = this.ctx.getImageData(x, y, 1, 1).data;
+      this.selectedColor = [pixel[0], pixel[1], pixel[2]];
+
+      const swatch = Utils.$('#bgr-color-swatch');
+      swatch.style.background = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+      Utils.$('#bgr-selected-color').classList.remove('hidden');
+    });
+  },
+
+  open(targetItem, imageDataUrl) {
+    this.targetItem = targetItem;
+    const modal = Utils.$('#modal-bg-remove');
+    modal.classList.remove('hidden');
+    Utils.$('#bgr-selected-color').classList.add('hidden');
+    this.selectedColor = null;
+
+    const img = new Image();
+    img.onload = () => {
+      // Resize canvas to image dimensions (max 600px width)
+      const maxW = 560;
+      const maxH = 380;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+
+      this.canvas.width = w;
+      this.canvas.height = h;
+      this.canvas.style.width = w + 'px';
+      this.canvas.style.height = h + 'px';
+
+      this.ctx.clearRect(0, 0, w, h);
+      this.ctx.drawImage(img, 0, 0, w, h);
+      this.originalImageData = this.ctx.getImageData(0, 0, w, h);
+      this.currentImageData = this.ctx.getImageData(0, 0, w, h);
+    };
+    img.src = imageDataUrl;
+  },
+
+  reset() {
+    if (!this.originalImageData) return;
+    const copy = new ImageData(
+      new Uint8ClampedArray(this.originalImageData.data),
+      this.originalImageData.width,
+      this.originalImageData.height
+    );
+    this.currentImageData = copy;
+    this.ctx.putImageData(copy, 0, 0);
+    this.selectedColor = null;
+    Utils.$('#bgr-selected-color').classList.add('hidden');
+  },
+
+  // Auto-detect background color from corners and edges, then remove
+  autoRemove() {
+    if (!this.currentImageData) return;
+    const data = this.currentImageData.data;
+    const w = this.currentImageData.width;
+    const h = this.currentImageData.height;
+
+    // Sample corners and edges to find most likely background color
+    const samples = [
+      [0, 0], [w-1, 0], [0, h-1], [w-1, h-1],
+      [Math.floor(w/2), 0], [0, Math.floor(h/2)],
+      [w-1, Math.floor(h/2)], [Math.floor(w/2), h-1]
+    ];
+
+    // Use the top-left corner as primary background color
+    const idx = 0;
+    const bgR = data[idx], bgG = data[idx+1], bgB = data[idx+2];
+
+    this.removeColorByFloodFill(bgR, bgG, bgB);
+  },
+
+  removeColorByFloodFill(bgR, bgG, bgB) {
+    if (!this.currentImageData) return;
+
+    // Work on a copy
+    const src = this.currentImageData;
+    const newData = new Uint8ClampedArray(src.data);
+    const w = src.width;
+    const h = src.height;
+    const tol = this.tolerance;
+    const visited = new Uint8Array(w * h);
+
+    // BFS from all four corners
+    const queue = [];
+    [[0,0],[w-1,0],[0,h-1],[w-1,h-1]].forEach(([cx, cy]) => {
+      queue.push(cy * w + cx);
+    });
+
+    const colorMatch = (di) => {
+      const dr = newData[di] - bgR;
+      const dg = newData[di+1] - bgG;
+      const db = newData[di+2] - bgB;
+      return Math.sqrt(dr*dr + dg*dg + db*db) <= tol;
+    };
+
+    let head = 0;
+    while (head < queue.length) {
+      const pixIdx = queue[head++];
+      if (visited[pixIdx]) continue;
+      visited[pixIdx] = 1;
+
+      const di = pixIdx * 4;
+      if (!colorMatch(di)) continue;
+
+      // Make transparent
+      newData[di + 3] = 0;
+
+      const x = pixIdx % w;
+      const y = Math.floor(pixIdx / w);
+      if (x > 0) queue.push(pixIdx - 1);
+      if (x < w-1) queue.push(pixIdx + 1);
+      if (y > 0) queue.push(pixIdx - w);
+      if (y < h-1) queue.push(pixIdx + w);
+    }
+
+    const imageData = new ImageData(newData, w, h);
+    this.currentImageData = imageData;
+    this.ctx.clearRect(0, 0, w, h);
+    this.ctx.putImageData(imageData, 0, 0);
+  },
+
+  applyToTarget() {
+    if (!this.targetItem || !this.canvas) return;
+    const resultDataUrl = this.canvas.toDataURL('image/png');
+
+    // Update the expression preview
+    const preview = this.targetItem.querySelector('.expression-preview');
+    if (preview) {
+      preview.innerHTML = `<img src="${resultDataUrl}" alt="expression">`;
+    }
+    this.targetItem._imageData = resultDataUrl;
+
+    Utils.$('#modal-bg-remove').classList.add('hidden');
   }
 };
