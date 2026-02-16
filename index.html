@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual Novel Creator</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- ===== Top Navigation Bar ===== -->
+  <header id="app-header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-icon">&#9830;</span>
+        <span class="logo-text">Visual Novel Creator</span>
+      </div>
+    </div>
+    <div class="header-center">
+      <input type="text" id="project-title" value="My Visual Novel" placeholder="Project Title">
+    </div>
+    <div class="header-right">
+      <button id="btn-save-project" class="header-btn" title="Save Project">
+        <span class="btn-icon">&#128190;</span> Save
+      </button>
+      <button id="btn-load-project" class="header-btn" title="Load Project">
+        <span class="btn-icon">&#128194;</span> Load
+      </button>
+      <button id="btn-export" class="header-btn btn-accent" title="Export as HTML">
+        <span class="btn-icon">&#128230;</span> Export
+      </button>
+      <button id="btn-preview" class="header-btn btn-primary" title="Preview Game">
+        <span class="btn-icon">&#9654;</span> Preview
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== Editor View ===== -->
+  <main id="editor-view">
+    <!-- Left Sidebar: Scenes & Characters -->
+    <aside id="sidebar">
+      <!-- Scenes Panel -->
+      <div class="sidebar-panel" id="scenes-panel">
+        <div class="panel-header">
+          <h3>Scenes</h3>
+          <button id="btn-add-scene" class="btn-small btn-add" title="Add Scene">+</button>
+        </div>
+        <div class="panel-content" id="scene-list">
+          <!-- Scene items rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Characters Panel -->
+      <div class="sidebar-panel" id="characters-panel">
+        <div class="panel-header">
+          <h3>Characters</h3>
+          <button id="btn-add-character" class="btn-small btn-add" title="Add Character">+</button>
+        </div>
+        <div class="panel-content" id="character-list">
+          <!-- Character items rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div class="sidebar-panel" id="settings-panel">
+        <div class="panel-header">
+          <h3>Settings</h3>
+        </div>
+        <div class="panel-content">
+          <label class="setting-row">
+            <span>Text Speed</span>
+            <input type="range" id="setting-text-speed" min="10" max="100" value="40">
+          </label>
+          <label class="setting-row">
+            <span>Auto Speed</span>
+            <input type="range" id="setting-auto-speed" min="500" max="5000" value="2000" step="100">
+          </label>
+          <label class="setting-row">
+            <span>Font Size</span>
+            <input type="range" id="setting-font-size" min="14" max="28" value="18">
+          </label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Editor Area -->
+    <section id="editor-main">
+      <!-- Scene Preview -->
+      <div id="scene-preview-container">
+        <div id="scene-preview">
+          <div id="preview-bg"></div>
+          <div id="preview-characters">
+            <div class="preview-char-slot" data-position="left"></div>
+            <div class="preview-char-slot" data-position="center"></div>
+            <div class="preview-char-slot" data-position="right"></div>
+          </div>
+          <div id="preview-textbox">
+            <div id="preview-name">Character</div>
+            <div id="preview-text">Dialogue text appears here...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Command Editor -->
+      <div id="command-editor">
+        <div class="command-editor-header">
+          <h3 id="current-scene-name">Select a scene</h3>
+          <div class="command-toolbar">
+            <button class="cmd-btn" data-type="dialogue" title="Add Dialogue">
+              <span>&#128172;</span> Dialogue
+            </button>
+            <button class="cmd-btn" data-type="narration" title="Add Narration">
+              <span>&#128220;</span> Narration
+            </button>
+            <button class="cmd-btn" data-type="show" title="Show Character">
+              <span>&#128100;</span> Show
+            </button>
+            <button class="cmd-btn" data-type="hide" title="Hide Character">
+              <span>&#128128;</span> Hide
+            </button>
+            <button class="cmd-btn" data-type="bg" title="Change Background">
+              <span>&#127749;</span> Background
+            </button>
+            <button class="cmd-btn" data-type="choice" title="Add Choice">
+              <span>&#128268;</span> Choice
+            </button>
+            <button class="cmd-btn" data-type="jump" title="Jump to Scene">
+              <span>&#10145;</span> Jump
+            </button>
+            <button class="cmd-btn" data-type="effect" title="Add Effect">
+              <span>&#10024;</span> Effect
+            </button>
+          </div>
+        </div>
+        <div id="command-list">
+          <!-- Command items rendered by JS -->
+          <div class="empty-state">
+            <p>Select a scene and add commands to build your story.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Panel: Properties -->
+    <aside id="properties-panel">
+      <div class="panel-header">
+        <h3>Properties</h3>
+      </div>
+      <div id="properties-content">
+        <div class="empty-state">
+          <p>Select a command to edit its properties.</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ===== Player View (Hidden by default) ===== -->
+  <div id="player-view" class="hidden">
+    <div id="player-container">
+      <!-- Background -->
+      <div id="player-bg"></div>
+
+      <!-- Characters Layer -->
+      <div id="player-characters">
+        <div class="player-char" data-position="left"></div>
+        <div class="player-char" data-position="center"></div>
+        <div class="player-char" data-position="right"></div>
+      </div>
+
+      <!-- Effect overlay -->
+      <div id="player-effect-overlay"></div>
+
+      <!-- Choice overlay -->
+      <div id="player-choices" class="hidden"></div>
+
+      <!-- Text Box -->
+      <div id="player-textbox">
+        <div id="player-name-plate">
+          <span id="player-char-name"></span>
+        </div>
+        <div id="player-dialogue"></div>
+        <div id="player-click-indicator">&#9660;</div>
+      </div>
+
+      <!-- Player Controls -->
+      <div id="player-controls">
+        <button id="btn-player-auto" class="player-ctrl-btn" title="Auto">Auto</button>
+        <button id="btn-player-skip" class="player-ctrl-btn" title="Skip">Skip</button>
+        <button id="btn-player-log" class="player-ctrl-btn" title="Log">Log</button>
+        <button id="btn-player-save" class="player-ctrl-btn" title="Save">Save</button>
+        <button id="btn-player-load" class="player-ctrl-btn" title="Load">Load</button>
+        <button id="btn-player-close" class="player-ctrl-btn btn-close" title="Close">Close</button>
+      </div>
+    </div>
+
+    <!-- Log Overlay -->
+    <div id="player-log-overlay" class="hidden">
+      <div id="player-log-content">
+        <div class="log-header">
+          <h3>Text Log</h3>
+          <button id="btn-close-log" class="btn-small">&times;</button>
+        </div>
+        <div id="log-entries"></div>
+      </div>
+    </div>
+
+    <!-- Save/Load Overlay -->
+    <div id="player-saveload-overlay" class="hidden">
+      <div id="player-saveload-content">
+        <div class="saveload-header">
+          <h3 id="saveload-title">Save</h3>
+          <button id="btn-close-saveload" class="btn-small">&times;</button>
+        </div>
+        <div id="saveload-slots"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Modals ===== -->
+  <!-- Character Editor Modal -->
+  <div id="modal-character" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-char-title">Add Character</h3>
+        <button class="btn-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Character Name</label>
+          <input type="text" id="char-name-input" placeholder="e.g. Alice">
+        </div>
+        <div class="form-group">
+          <label>Name Color</label>
+          <input type="color" id="char-color-input" value="#ff6b9d">
+        </div>
+        <div class="form-group">
+          <label>Expressions</label>
+          <div id="char-expressions">
+            <div class="expression-item" data-expression="default">
+              <div class="expression-preview">
+                <span class="no-image">No Image</span>
+              </div>
+              <span class="expression-label">Default</span>
+              <button class="btn-upload-expression btn-small">Upload</button>
+            </div>
+          </div>
+          <button id="btn-add-expression" class="btn-small btn-add">+ Add Expression</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-char-cancel" class="btn-secondary">Cancel</button>
+        <button id="btn-char-save" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background Upload Modal -->
+  <div id="modal-bg" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Set Background</h3>
+        <button class="btn-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Upload Background Image</label>
+          <div id="bg-upload-area" class="upload-area">
+            <p>Click or drag image here</p>
+            <input type="file" id="bg-file-input" accept="image/*" class="file-input-hidden">
+          </div>
+          <div id="bg-preview-area" class="hidden">
+            <img id="bg-preview-img" alt="Background preview">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-bg-cancel" class="btn-secondary">Cancel</button>
+        <button id="btn-bg-save" class="btn-primary">Set Background</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div id="modal-export" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Export Visual Novel</h3>
+        <button class="btn-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Project Title</label>
+          <input type="text" id="export-title" placeholder="My Visual Novel">
+        </div>
+        <div class="form-group">
+          <label>Author</label>
+          <input type="text" id="export-author" placeholder="Author Name">
+        </div>
+        <p class="export-info">Your visual novel will be exported as a single HTML file that can be opened in any browser.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-export-cancel" class="btn-secondary">Cancel</button>
+        <button id="btn-export-confirm" class="btn-primary">Export HTML</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file inputs -->
+  <input type="file" id="load-project-input" accept=".json,.vnproject" class="file-input-hidden">
+  <input type="file" id="expression-file-input" accept="image/*" class="file-input-hidden">
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/exporter.js"></script>
+</body>
+</html>
