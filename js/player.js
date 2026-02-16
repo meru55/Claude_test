@@ -202,7 +202,7 @@ const Player = {
 
     // Update character display
     if (char && cmd.position) {
-      this.showCharacter(cmd.characterId, cmd.position, cmd.expression || 'default');
+      this.showCharacter(cmd.characterId, cmd.position, cmd.expression || 'default', cmd.scale ?? 1.0, cmd.offsetY ?? 0);
     }
 
     // Dim non-speaking characters
@@ -306,7 +306,7 @@ const Player = {
   },
 
   // ---- Show/Hide Characters ----
-  showCharacter(charId, position, expression) {
+  showCharacter(charId, position, expression, scale = 1.0, offsetY = 0) {
     const char = this.project.characters.find(c => c.id === charId);
     if (!char) return;
 
@@ -316,19 +316,20 @@ const Player = {
       if (oldSlot) oldSlot.innerHTML = '';
     }
 
-    this.visibleChars[charId] = { position, expression };
+    this.visibleChars[charId] = { position, expression, scale, offsetY };
 
     const slot = Utils.$(`.player-char[data-position="${position}"]`);
     if (!slot) return;
 
     const imgSrc = char.images[expression] || char.images['default'];
     if (imgSrc) {
-      slot.innerHTML = `<img src="${imgSrc}" alt="${char.name}" style="opacity:0">`;
+      const transformVal = `scale(${scale}) translateY(${-offsetY}%)`;
+      slot.innerHTML = `<img src="${imgSrc}" alt="${char.name}" style="opacity:0;transform:${transformVal};transform-origin:bottom center;">`;
       // Fade in
       requestAnimationFrame(() => {
         const img = slot.querySelector('img');
         if (img) {
-          img.style.transition = 'opacity 0.4s ease';
+          img.style.transition = 'opacity 0.4s ease, transform 0.3s ease';
           img.style.opacity = '1';
         }
       });
@@ -336,7 +337,7 @@ const Player = {
   },
 
   executeShow(cmd) {
-    this.showCharacter(cmd.characterId, cmd.position, cmd.expression || 'default');
+    this.showCharacter(cmd.characterId, cmd.position, cmd.expression || 'default', cmd.scale ?? 1.0, cmd.offsetY ?? 0);
   },
 
   executeHide(cmd) {

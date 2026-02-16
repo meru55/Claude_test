@@ -230,7 +230,7 @@ else{$('#char-name').textContent='';$('#dialogue').textContent='- The End -';$('
 
 function execDialogue(c){
 const ch=findChar(c.characterId);
-if(ch&&c.position)showChar(c.characterId,c.position,c.expression||'default');
+if(ch&&c.position)showChar(c.characterId,c.position,c.expression||'default',c.scale,c.offsetY);
 highlightChar(c.characterId);
 const n=$('#char-name');n.textContent=ch?ch.name:'';
 const np=$('#name-plate');
@@ -277,17 +277,19 @@ autoTimer=setTimeout(advance,d);
 
 function clearTimers(){if(twTimer){clearInterval(twTimer);twTimer=null}if(autoTimer){clearTimeout(autoTimer);autoTimer=null}}
 
-function showChar(id,pos,expr){
+function showChar(id,pos,expr,scale,offsetY){
+scale=scale??1.0;offsetY=offsetY??0;
 const ch=findChar(id);if(!ch)return;
 if(visChars[id]){const s=$('.g-char[data-pos="'+visChars[id].position+'"]');if(s)s.innerHTML=''}
-visChars[id]={position:pos,expression:expr};
+visChars[id]={position:pos,expression:expr,scale:scale,offsetY:offsetY};
 const s=$('.g-char[data-pos="'+pos+'"]');if(!s)return;
 const src=ch.images[expr]||ch.images['default'];
-if(src){s.innerHTML='<img src="'+src+'" style="opacity:0">';
-requestAnimationFrame(()=>{const img=s.querySelector('img');if(img){img.style.transition='opacity 0.4s ease';img.style.opacity='1'}})}
+const tf='scale('+scale+') translateY('+(-offsetY)+'%)';
+if(src){s.innerHTML='<img src="'+src+'" style="opacity:0;transform:'+tf+';transform-origin:bottom center">';
+requestAnimationFrame(()=>{const img=s.querySelector('img');if(img){img.style.transition='opacity 0.4s ease,transform 0.3s ease';img.style.opacity='1'}})}
 }
 
-function execShow(c){showChar(c.characterId,c.position,c.expression||'default')}
+function execShow(c){showChar(c.characterId,c.position,c.expression||'default',c.scale,c.offsetY)}
 function execHide(c){
 if(visChars[c.characterId]){
 const p=visChars[c.characterId].position;

@@ -517,6 +517,8 @@ const Editor = {
   },
 
   buildDialogueProperties(cmd) {
+    const scale = cmd.scale ?? 1.0;
+    const offsetY = cmd.offsetY ?? 0;
     return `
       <div class="prop-group">
         <label>Character</label>
@@ -529,6 +531,16 @@ const Editor = {
       <div class="prop-group">
         <label>Position</label>
         ${this.buildPositionSelect(cmd.position)}
+      </div>
+      <div class="prop-group">
+        <label>Size (Scale) &nbsp;<span id="prop-scale-val" style="color:var(--accent-secondary)">${scale.toFixed(2)}x</span></label>
+        <input type="range" id="prop-scale" min="0.2" max="2.0" step="0.05" value="${scale}"
+          style="width:100%;accent-color:var(--accent-primary)">
+      </div>
+      <div class="prop-group">
+        <label>Vertical Offset &nbsp;<span id="prop-offsety-val" style="color:var(--accent-secondary)">${offsetY}%</span></label>
+        <input type="range" id="prop-offsety" min="-50" max="50" step="1" value="${offsetY}"
+          style="width:100%;accent-color:var(--accent-primary)">
       </div>
       <div class="prop-group">
         <label>Dialogue Text</label>
@@ -547,6 +559,8 @@ const Editor = {
   },
 
   buildShowProperties(cmd) {
+    const scale = cmd.scale ?? 1.0;
+    const offsetY = cmd.offsetY ?? 0;
     return `
       <div class="prop-group">
         <label>Character</label>
@@ -559,6 +573,16 @@ const Editor = {
       <div class="prop-group">
         <label>Position</label>
         ${this.buildPositionSelect(cmd.position)}
+      </div>
+      <div class="prop-group">
+        <label>Size (Scale) &nbsp;<span id="prop-scale-val" style="color:var(--accent-secondary)">${scale.toFixed(2)}x</span></label>
+        <input type="range" id="prop-scale" min="0.2" max="2.0" step="0.05" value="${scale}"
+          style="width:100%;accent-color:var(--accent-primary)">
+      </div>
+      <div class="prop-group">
+        <label>Vertical Offset &nbsp;<span id="prop-offsety-val" style="color:var(--accent-secondary)">${offsetY}%</span></label>
+        <input type="range" id="prop-offsety" min="-50" max="50" step="1" value="${offsetY}"
+          style="width:100%;accent-color:var(--accent-primary)">
       </div>
     `;
   },
@@ -657,6 +681,26 @@ const Editor = {
     if (posSelect) {
       posSelect.addEventListener('change', (e) => {
         cmd.position = e.target.value;
+        update();
+      });
+    }
+
+    // Scale slider
+    const scaleSlider = Utils.$('#prop-scale');
+    if (scaleSlider) {
+      scaleSlider.addEventListener('input', (e) => {
+        cmd.scale = parseFloat(e.target.value);
+        Utils.$('#prop-scale-val').textContent = cmd.scale.toFixed(2) + 'x';
+        update();
+      });
+    }
+
+    // Vertical offset slider
+    const offsetYSlider = Utils.$('#prop-offsety');
+    if (offsetYSlider) {
+      offsetYSlider.addEventListener('input', (e) => {
+        cmd.offsetY = parseInt(e.target.value);
+        Utils.$('#prop-offsety-val').textContent = cmd.offsetY + '%';
         update();
       });
     }
@@ -855,7 +899,7 @@ const Editor = {
           state.bg = cmd.background;
           break;
         case 'show':
-          state.chars[cmd.characterId] = { position: cmd.position, expression: cmd.expression };
+          state.chars[cmd.characterId] = { position: cmd.position, expression: cmd.expression, scale: cmd.scale ?? 1.0, offsetY: cmd.offsetY ?? 0 };
           break;
         case 'hide':
           delete state.chars[cmd.characterId];
@@ -864,7 +908,7 @@ const Editor = {
           state.lastDialogue = cmd;
           state.lastNarration = null;
           if (cmd.characterId && cmd.position) {
-            state.chars[cmd.characterId] = { position: cmd.position, expression: cmd.expression || 'default' };
+            state.chars[cmd.characterId] = { position: cmd.position, expression: cmd.expression || 'default', scale: cmd.scale ?? 1.0, offsetY: cmd.offsetY ?? 0 };
           }
           break;
         case 'narration':
@@ -891,7 +935,10 @@ const Editor = {
       if (!slot) return;
       const imgSrc = char.images[info.expression] || char.images['default'];
       if (imgSrc) {
-        slot.innerHTML = `<img src="${imgSrc}" alt="${char.name}">`;
+        const scale = info.scale ?? 1.0;
+        const offsetY = info.offsetY ?? 0;
+        const tf = `scale(${scale}) translateY(${-offsetY}%)`;
+        slot.innerHTML = `<img src="${imgSrc}" alt="${char.name}" style="transform:${tf};transform-origin:bottom center;">`;
       }
     });
 

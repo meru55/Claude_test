@@ -39,11 +39,11 @@ class VNProject {
     const base = { id: VNProject.uid(), type };
     switch (type) {
       case 'dialogue':
-        return { ...base, characterId: '', expression: 'default', text: '', position: 'center' };
+        return { ...base, characterId: '', expression: 'default', text: '', position: 'center', scale: 1.0, offsetY: 0 };
       case 'narration':
         return { ...base, text: '' };
       case 'show':
-        return { ...base, characterId: '', expression: 'default', position: 'center' };
+        return { ...base, characterId: '', expression: 'default', position: 'center', scale: 1.0, offsetY: 0 };
       case 'hide':
         return { ...base, characterId: '' };
       case 'bg':
