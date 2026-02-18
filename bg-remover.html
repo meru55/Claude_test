@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>背景削除アプリ / Background Remover</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface2:  #22263a;
+      --border:    #2e3250;
+      --accent:    #6c63ff;
+      --accent2:   #a78bfa;
+      --text:      #e8eaf6;
+      --text-sub:  #8b90b8;
+      --danger:    #ef4444;
+      --success:   #22c55e;
+      --radius:    12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* ── Header ────────────────────────────────────── */
+    header {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 20px;
+    }
+    .logo-text h1 { font-size: 1.25rem; font-weight: 700; }
+    .logo-text p  { font-size: 0.78rem; color: var(--text-sub); }
+
+    /* ── Upload area ────────────────────────────────── */
+    #upload-area {
+      width: 100%;
+      max-width: 960px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    #upload-area.drag-over,
+    #upload-area:hover {
+      border-color: var(--accent);
+      background: #1e2035;
+    }
+    #upload-area.hidden { display: none; }
+    #upload-area .upload-icon { font-size: 48px; margin-bottom: 12px; }
+    #upload-area h2 { font-size: 1.1rem; margin-bottom: 6px; }
+    #upload-area p  { font-size: 0.85rem; color: var(--text-sub); }
+    #file-input { display: none; }
+
+    /* ── Main workspace ─────────────────────────────── */
+    #workspace {
+      width: 100%;
+      max-width: 960px;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+    }
+    #workspace.visible { display: flex; }
+
+    /* Toolbar above canvas */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .toolbar-label {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      white-space: nowrap;
+    }
+
+    /* ── Canvas wrapper ─────────────────────────────── */
+    #canvas-wrap {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: auto;
+      background:
+        linear-gradient(45deg, #555 25%, transparent 25%) 0 0 / 16px 16px,
+        linear-gradient(-45deg, #555 25%, transparent 25%) 0 8px / 16px 16px,
+        linear-gradient(45deg, transparent 75%, #555 75%) 8px -8px / 16px 16px,
+        linear-gradient(-45deg, transparent 75%, #555 75%) -8px 0 / 16px 16px,
+        #3a3a3a;
+      max-height: 520px;
+      border: 1px solid var(--border);
+      cursor: crosshair;
+    }
+    #canvas-wrap canvas {
+      display: block;
+      max-width: 100%;
+    }
+
+    /* Color-pick cursor hint */
+    #canvas-wrap.picking { cursor: crosshair; }
+
+    /* ── Controls panel ─────────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .panel-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .panel-row label {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      white-space: nowrap;
+      min-width: 80px;
+    }
+
+    /* Tolerance slider */
+    #tol-range {
+      flex: 1;
+      min-width: 120px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    #tol-val {
+      font-size: 0.85rem;
+      font-variant-numeric: tabular-nums;
+      min-width: 30px;
+      text-align: right;
+      font-weight: 600;
+      color: var(--accent2);
+    }
+
+    /* Color swatch row */
+    #swatch-row { display: none; }
+    #swatch-row.visible { display: flex; }
+    .color-swatch {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+    .swatch-info {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .swatch-info strong { color: var(--text); font-size: 0.85rem; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: default; }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger    { background: var(--danger); color: #fff; }
+    .btn-success   { background: var(--success); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
+
+    /* ── Mode pills ─────────────────────────────────── */
+    .mode-group {
+      display: flex;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .mode-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .mode-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ── Status bar ─────────────────────────────────── */
+    #status {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #status .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-sub);
+    }
+    #status.busy .dot { background: var(--accent); animation: pulse 1s infinite; }
+    #status.ok   .dot { background: var(--success); }
+    @keyframes pulse {
+      0%,100% { opacity: 1; } 50% { opacity: .3; }
+    }
+
+    /* ── Tips ───────────────────────────────────────── */
+    .tips {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      line-height: 1.7;
+      background: var(--surface2);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 14px;
+    }
+    .tips strong { color: var(--accent2); }
+
+    /* ── Action row ─────────────────────────────────── */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Upload new ─────────────────────────────────── */
+    #btn-new {
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    #btn-new:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-icon">✂️</div>
+    <div class="logo-text">
+      <h1>背景削除アプリ</h1>
+      <p>Background Remover — ローカル・オフライン動作</p>
+    </div>
+  </header>
+
+  <!-- ── Upload zone ── -->
+  <div id="upload-area">
+    <div class="upload-icon">🖼️</div>
+    <h2>画像をドロップ、またはクリックして選択</h2>
+    <p>PNG / JPG / WebP / GIF 対応 ／ ファイルはサーバーに送信されません</p>
+    <input type="file" id="file-input" accept="image/*">
+  </div>
+
+  <!-- ── Main workspace ── -->
+  <div id="workspace">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <span class="toolbar-label">表示モード:</span>
+      <div class="mode-group">
+        <button class="mode-btn active" id="mode-result">処理後</button>
+        <button class="mode-btn" id="mode-original">元画像</button>
+      </div>
+      <button id="btn-new" style="margin-left:auto">別の画像を開く</button>
+    </div>
+
+    <!-- Canvas -->
+    <div id="canvas-wrap">
+      <canvas id="main-canvas"></canvas>
+    </div>
+
+    <!-- Status -->
+    <div id="status"><span class="dot"></span><span id="status-text">画像の背景部分をクリックして色を選択してください</span></div>
+
+    <!-- Controls panel -->
+    <div class="panel">
+
+      <!-- Tolerance -->
+      <div class="panel-row">
+        <label for="tol-range">許容誤差</label>
+        <input type="range" id="tol-range" min="5" max="120" value="30">
+        <span id="tol-val">30</span>
+      </div>
+
+      <!-- Selected color -->
+      <div class="panel-row" id="swatch-row">
+        <label>選択色</label>
+        <div id="swatch" class="color-swatch"></div>
+        <div class="swatch-info">
+          <strong id="swatch-hex">#000000</strong>
+          <span id="swatch-rgb">rgb(0, 0, 0)</span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-apply-click">この色を除去</button>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="action-row">
+        <button class="btn btn-primary" id="btn-auto">⚡ 自動検出 &amp; 除去</button>
+        <button class="btn btn-secondary" id="btn-reset">↺ リセット</button>
+        <button class="btn btn-success" id="btn-download" disabled>⬇ PNG 保存</button>
+      </div>
+
+      <!-- Tips -->
+      <div class="tips">
+        <strong>使い方:</strong><br>
+        1. <strong>クリック除去</strong> — キャンバス上の背景部分をクリックして色を選び「この色を除去」<br>
+        2. <strong>自動検出</strong> — 四隅の色を背景と見なして一括除去<br>
+        3. <strong>許容誤差</strong> で除去する色の幅を調整（大きいほど広範囲）<br>
+        4. 複数回クリックして除去を重ねることができます<br>
+        5. 満足したら <strong>PNG 保存</strong> でダウンロード
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    'use strict';
+
+    /* ── State ───────────────────────────────────────── */
+    const state = {
+      original: null,   // ImageData (original)
+      current:  null,   // ImageData (working copy)
+      selectedColor: null,  // [r, g, b]
+      showResult: true,
+    };
+
+    /* ── DOM refs ────────────────────────────────────── */
+    const uploadArea  = document.getElementById('upload-area');
+    const fileInput   = document.getElementById('file-input');
+    const workspace   = document.getElementById('workspace');
+    const canvas      = document.getElementById('main-canvas');
+    const ctx         = canvas.getContext('2d', { willReadFrequently: true });
+    const tolRange    = document.getElementById('tol-range');
+    const tolVal      = document.getElementById('tol-val');
+    const swatchRow   = document.getElementById('swatch-row');
+    const swatch      = document.getElementById('swatch');
+    const swatchHex   = document.getElementById('swatch-hex');
+    const swatchRgb   = document.getElementById('swatch-rgb');
+    const btnApply    = document.getElementById('btn-apply-click');
+    const btnAuto     = document.getElementById('btn-auto');
+    const btnReset    = document.getElementById('btn-reset');
+    const btnDownload = document.getElementById('btn-download');
+    const btnNew      = document.getElementById('btn-new');
+    const modeResult  = document.getElementById('mode-result');
+    const modeOriginal= document.getElementById('mode-original');
+    const statusEl    = document.getElementById('status');
+    const statusText  = document.getElementById('status-text');
+
+    /* ── Helpers ─────────────────────────────────────── */
+    function setStatus(msg, type = '') {
+      statusText.textContent = msg;
+      statusEl.className = type;
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+    }
+
+    function getTolerance() {
+      return parseInt(tolRange.value, 10);
+    }
+
+    /* ── Load image ──────────────────────────────────── */
+    function loadImage(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        setStatus('画像ファイルを選択してください', '');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => initCanvas(e.target.result, file.name);
+      reader.readAsDataURL(file);
+    }
+
+    function initCanvas(dataUrl, filename) {
+      const img = new Image();
+      img.onload = () => {
+        // Scale down for display (max 880px wide or 500px tall)
+        const maxW = 880, maxH = 500;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+
+        canvas.width  = w;
+        canvas.height = h;
+        canvas.style.width  = w + 'px';
+        canvas.style.height = h + 'px';
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+
+        const imageData = ctx.getImageData(0, 0, w, h);
+        state.original = cloneImageData(imageData);
+        state.current  = cloneImageData(imageData);
+        state.selectedColor = null;
+        state.showResult = true;
+
+        swatchRow.classList.remove('visible');
+        modeResult.classList.add('active');
+        modeOriginal.classList.remove('active');
+        btnDownload.disabled = false;
+
+        uploadArea.classList.add('hidden');
+        workspace.classList.add('visible');
+
+        setStatus(`「${filename}」を読み込みました — 背景をクリックして色を選択してください`, 'ok');
+        setTimeout(() => setStatus('背景部分をクリックして色を選択してください'), 2000);
+      };
+      img.src = dataUrl;
+    }
+
+    /* ── ImageData clone ─────────────────────────────── */
+    function cloneImageData(src) {
+      return new ImageData(new Uint8ClampedArray(src.data), src.width, src.height);
+    }
+
+    /* ── Flood-fill background removal ──────────────── */
+    function removeColorByFloodFill(bgR, bgG, bgB) {
+      if (!state.current) return;
+      const src = state.current;
+      const newData = new Uint8ClampedArray(src.data);
+      const w = src.width, h = src.height;
+      const tol = getTolerance();
+      const visited = new Uint8Array(w * h);
+
+      const colorMatch = (di) => {
+        const dr = newData[di]   - bgR;
+        const dg = newData[di+1] - bgG;
+        const db = newData[di+2] - bgB;
+        return (dr*dr + dg*dg + db*db) <= tol * tol;
+      };
+
+      // BFS from all four corners
+      const queue = new Int32Array(w * h);
+      let head = 0, tail = 0;
+      [[0,0],[w-1,0],[0,h-1],[w-1,h-1]].forEach(([cx, cy]) => {
+        const idx = cy * w + cx;
+        if (!visited[idx]) { visited[idx] = 1; queue[tail++] = idx; }
+      });
+
+      while (head < tail) {
+        const pixIdx = queue[head++];
+        const di = pixIdx * 4;
+        if (!colorMatch(di)) continue;
+
+        // Make fully transparent
+        newData[di + 3] = 0;
+
+        const x = pixIdx % w;
+        const y = (pixIdx / w) | 0;
+
+        const tryPush = (ni) => {
+          if (!visited[ni]) { visited[ni] = 1; queue[tail++] = ni; }
+        };
+        if (x > 0)   tryPush(pixIdx - 1);
+        if (x < w-1) tryPush(pixIdx + 1);
+        if (y > 0)   tryPush(pixIdx - w);
+        if (y < h-1) tryPush(pixIdx + w);
+      }
+
+      // Soft edge: for semi-transparent fringe pixels near removed area
+      applyEdgeSoftening(newData, w, h);
+
+      state.current = new ImageData(newData, w, h);
+      redraw();
+    }
+
+    /* ── Edge softening (reduce harsh borders) ─────── */
+    function applyEdgeSoftening(data, w, h) {
+      // For each transparent pixel, blend neighbours that are opaque → reduce fringe
+      // Simple single-pass alpha erosion on boundary pixels
+      const copy = new Uint8ClampedArray(data);
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const i = (y * w + x) * 4;
+          if (copy[i + 3] === 0) continue; // already transparent
+          // Count transparent neighbours
+          let transp = 0;
+          const ns = [
+            ((y-1)*w + x)*4, ((y+1)*w + x)*4,
+            (y*w + x-1)*4,   (y*w + x+1)*4,
+          ];
+          for (const ni of ns) if (copy[ni+3] === 0) transp++;
+          if (transp >= 2) {
+            // Partially fade this pixel
+            data[i + 3] = Math.round(copy[i + 3] * (1 - transp * 0.18));
+          }
+        }
+      }
+    }
+
+    /* ── Redraw canvas ───────────────────────────────── */
+    function redraw() {
+      const imageData = state.showResult ? state.current : state.original;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    /* ── Auto-detect ─────────────────────────────────── */
+    function autoRemove() {
+      if (!state.current) return;
+      setStatus('自動検出中...', 'busy');
+
+      // Use Web Worker-like technique: defer to next frame so UI can update
+      requestAnimationFrame(() => {
+        const data = state.current.data;
+        // Top-left corner pixel as background color
+        const bgR = data[0], bgG = data[1], bgB = data[2];
+        removeColorByFloodFill(bgR, bgG, bgB);
+        setStatus('背景を除去しました。さらに除去したい箇所があればクリックしてください', 'ok');
+      });
+    }
+
+    /* ── Reset ───────────────────────────────────────── */
+    function resetImage() {
+      if (!state.original) return;
+      state.current = cloneImageData(state.original);
+      state.selectedColor = null;
+      state.showResult = true;
+      swatchRow.classList.remove('visible');
+      modeResult.classList.add('active');
+      modeOriginal.classList.remove('active');
+      redraw();
+      setStatus('元の画像に戻しました', '');
+    }
+
+    /* ── Download PNG ─────────────────────────────────── */
+    function downloadPng() {
+      if (!state.current) return;
+      // Temporarily draw current result
+      const tmp = document.createElement('canvas');
+      tmp.width  = canvas.width;
+      tmp.height = canvas.height;
+      const tc = tmp.getContext('2d');
+      tc.putImageData(state.current, 0, 0);
+      const url = tmp.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bg_removed.png';
+      a.click();
+      setStatus('PNG を保存しました', 'ok');
+    }
+
+    /* ── Canvas click: pick color ────────────────────── */
+    canvas.addEventListener('click', (e) => {
+      if (!state.current) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width  / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = Math.floor((e.clientX - rect.left)  * scaleX);
+      const y = Math.floor((e.clientY - rect.top)   * scaleY);
+
+      const pixel = ctx.getImageData(x, y, 1, 1).data;
+      const r = pixel[0], g = pixel[1], b = pixel[2];
+      state.selectedColor = [r, g, b];
+
+      swatch.style.background = `rgb(${r},${g},${b})`;
+      swatchHex.textContent   = rgbToHex(r, g, b);
+      swatchRgb.textContent   = `rgb(${r}, ${g}, ${b})`;
+      swatchRow.classList.add('visible');
+
+      setStatus(`色を選択しました: ${rgbToHex(r, g, b)} — 「この色を除去」をクリックしてください`, '');
+    });
+
+    /* ── Tolerance slider ───────────────────────────── */
+    tolRange.addEventListener('input', () => {
+      tolVal.textContent = tolRange.value;
+    });
+
+    /* ── Buttons ────────────────────────────────────── */
+    btnApply.addEventListener('click', () => {
+      if (!state.selectedColor) return;
+      const [r, g, b] = state.selectedColor;
+      setStatus('除去中...', 'busy');
+      requestAnimationFrame(() => {
+        removeColorByFloodFill(r, g, b);
+        setStatus('除去しました。続けてクリックするか、PNG を保存してください', 'ok');
+      });
+    });
+
+    btnAuto.addEventListener('click', autoRemove);
+    btnReset.addEventListener('click', resetImage);
+    btnDownload.addEventListener('click', downloadPng);
+    btnNew.addEventListener('click', () => {
+      uploadArea.classList.remove('hidden');
+      workspace.classList.remove('visible');
+      fileInput.value = '';
+    });
+
+    /* ── View mode toggle ───────────────────────────── */
+    modeResult.addEventListener('click', () => {
+      state.showResult = true;
+      modeResult.classList.add('active');
+      modeOriginal.classList.remove('active');
+      redraw();
+    });
+    modeOriginal.addEventListener('click', () => {
+      state.showResult = false;
+      modeOriginal.classList.add('active');
+      modeResult.classList.remove('active');
+      redraw();
+    });
+
+    /* ── File input & drag-and-drop ─────────────────── */
+    uploadArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) loadImage(e.target.files[0]);
+    });
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('drag-over');
+    });
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) loadImage(file);
+    });
+
+    // Also accept drops anywhere on the page when upload is shown
+    document.addEventListener('dragover', (e) => e.preventDefault());
+    document.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!workspace.classList.contains('visible')) {
+        const file = e.dataTransfer.files[0];
+        if (file) loadImage(file);
+      }
+    });
+
+    /* ── Keyboard shortcut: R = reset, D = download ── */
+    document.addEventListener('keydown', (e) => {
+      if (!workspace.classList.contains('visible')) return;
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === 'r' || e.key === 'R') resetImage();
+      if (e.key === 'd' || e.key === 'D') downloadPng();
+      if (e.key === 'a' || e.key === 'A') autoRemove();
+    });
+  })();
+  </script>
+</body>
+</html>
