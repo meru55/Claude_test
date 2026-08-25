@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#12211C">
+<title>家計バランス — 収入に対する支出の割合</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3F4F0;--card:#FFFFFF;--ink:#14231D;--ink-soft:#5C6660;--line:#E1E4DD;
+    --teal:#2F6F5E;--teal-deep:#1F5344;--amber:#C98A1E;--danger:#C24236;
+    --shadow:0 1px 2px rgba(20,35,29,.06),0 8px 24px rgba(20,35,29,.05);
+    --seg-0:#2F6F5E;--seg-1:#3F8C74;--seg-2:#57A88C;--seg-3:#7BBBA3;--seg-4:#A3D0BF;--seg-5:#C9836A;--seg-6:#D7A24C;--seg-7:#8A9A93;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:"Noto Sans JP",system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  .num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;}
+  .wrap{max-width:440px;margin:0 auto;padding:20px 16px 40px;}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal);font-weight:600;margin:0 0 6px;}
+  h1{font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700;letter-spacing:-.01em;margin:0 0 4px;}
+  .sub{color:var(--ink-soft);font-size:13px;margin:0 0 22px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .card-label{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;margin:0 0 10px;}
+  .bd-row{display:flex;gap:8px;align-items:center;}
+  #budget-select{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;background:#FBFCFA;font-family:"Noto Sans JP",sans-serif;font-size:15px;font-weight:500;color:var(--ink);padding:11px 34px 11px 12px;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235C6660' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+  #budget-select:focus{border-color:var(--teal);}
+  .btn-ghost{border:1px solid var(--teal);background:#fff;color:var(--teal);border-radius:12px;padding:11px 14px;font-family:"Noto Sans JP",sans-serif;font-size:14px;font-weight:600;cursor:pointer;flex:none;transition:.15s;}
+  .btn-ghost:active{background:var(--teal);color:#fff;}
+  .bd-tools{display:flex;gap:8px;margin-top:10px;}
+  #budget-name{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-family:"Noto Sans JP",sans-serif;font-size:14px;color:var(--ink);background:#FBFCFA;outline:none;}
+  #budget-name:focus{border-color:var(--teal);}
+  .btn-mini{border:1px solid var(--line);background:#F7F8F5;color:var(--ink-soft);border-radius:12px;padding:0 12px;font-family:"Noto Sans JP",sans-serif;font-size:13px;cursor:pointer;flex:none;}
+  .btn-mini:active{color:var(--danger);border-color:var(--danger);}
+  .income-row{display:flex;align-items:baseline;gap:8px;}
+  .yen{font-family:"Space Grotesk",sans-serif;font-size:28px;font-weight:600;color:var(--ink-soft);}
+  #income{flex:1;min-width:0;border:none;background:transparent;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:34px;font-weight:600;color:var(--ink);padding:0;letter-spacing:-.01em;width:100%;outline:none;}
+  #income::placeholder{color:#C4C9C2;}
+  .summary{background:var(--teal-deep);border-color:var(--teal-deep);color:#EAF3EF;}
+  .summary .card-label{color:#9FC4B7;}
+  .stack{display:flex;height:22px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.14);margin:4px 0 14px;}
+  .stack span{height:100%;transition:width .5s cubic-bezier(.22,1,.36,1);}
+  .stack .rest{background:rgba(255,255,255,.10);}
+  .sum-grid{display:flex;justify-content:space-between;gap:12px;}
+  .sum-cell{flex:1;}
+  .sum-cell .k{font-size:11px;color:#9FC4B7;font-family:"IBM Plex Mono",monospace;letter-spacing:.1em;}
+  .sum-cell .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:19px;font-weight:600;margin-top:2px;}
+  .sum-cell .v.pos{color:#8FE3C4;}
+  .sum-cell .v.neg{color:#F2A79C;}
+  .rate-pill{display:inline-block;margin-top:10px;font-family:"IBM Plex Mono",monospace;font-size:12px;background:rgba(255,255,255,.14);padding:4px 10px;border-radius:999px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px;}
+  .chip{border:1px solid var(--line);background:#F7F8F5;color:var(--ink);font-family:"Noto Sans JP",sans-serif;font-size:13px;font-weight:500;padding:7px 12px;border-radius:999px;cursor:pointer;transition:.15s;}
+  .chip:active{transform:scale(.95);background:var(--teal);color:#fff;border-color:var(--teal);}
+  .add-form{display:flex;gap:8px;margin-top:12px;}
+  .add-form input{border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-family:"Noto Sans JP",sans-serif;font-size:15px;color:var(--ink);background:#FBFCFA;outline:none;min-width:0;}
+  .add-form input:focus{border-color:var(--teal);}
+  .add-form .name{flex:1.4;}
+  .add-form .amt{flex:1;font-family:"IBM Plex Mono",monospace;}
+  .btn-add{border:none;background:var(--teal);color:#fff;border-radius:12px;width:46px;flex:none;font-size:22px;font-weight:600;cursor:pointer;transition:.15s;}
+  .btn-add:active{transform:scale(.94);background:var(--teal-deep);}
+  .exp{padding:14px 0;border-top:1px solid var(--line);}
+  .exp:first-child{border-top:none;}
+  .exp-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .exp-name{font-weight:500;font-size:15px;}
+  .exp-amt{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600;font-size:15px;}
+  .exp-bar{height:8px;border-radius:6px;background:#EFF1EC;margin:8px 0 6px;overflow:hidden;}
+  .exp-bar i{display:block;height:100%;border-radius:6px;transition:width .5s cubic-bezier(.22,1,.36,1);}
+  .exp-meta{display:flex;justify-content:space-between;align-items:center;}
+  .exp-pct{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);font-weight:500;}
+  .exp-actions{display:flex;gap:2px;}
+  .lnk{border:none;background:transparent;color:#9AA29B;font-size:13px;cursor:pointer;padding:4px 8px;border-radius:8px;font-family:"Noto Sans JP",sans-serif;}
+  .lnk.edit:active{color:var(--teal);}
+  .lnk.del:active{color:var(--danger);}
+  .edit-form{display:flex;gap:8px;margin-top:2px;}
+  .edit-form input{border:1px solid var(--teal);border-radius:10px;padding:9px 10px;font-family:"Noto Sans JP",sans-serif;font-size:14px;color:var(--ink);background:#fff;outline:none;min-width:0;}
+  .edit-form .e-name{flex:1.4;}
+  .edit-form .e-amt{flex:1;font-family:"IBM Plex Mono",monospace;}
+  .edit-form .save{border:none;background:var(--teal);color:#fff;border-radius:10px;padding:0 14px;font-size:14px;font-weight:600;flex:none;cursor:pointer;}
+  .empty{text-align:center;color:var(--ink-soft);font-size:14px;padding:20px 0;}
+  .empty .num{font-size:13px;color:#B7BDB6;display:block;margin-top:4px;}
+  .btn-clear{width:100%;margin-top:14px;border:1px solid var(--line);background:#fff;color:var(--danger);border-radius:12px;padding:12px;font-family:"Noto Sans JP",sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;}
+  .btn-clear:active{background:var(--danger);color:#fff;border-color:var(--danger);}
+  .foot{text-align:center;color:#AEB4AC;font-size:11px;margin-top:18px;font-family:"IBM Plex Mono",monospace;letter-spacing:.06em;}
+  .warn{background:#FCF3E8;border:1px solid #EAD3AC;color:#8A5A12;font-size:13px;border-radius:14px;padding:12px 14px;margin-bottom:14px;display:none;}
+  .warn.show{display:block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Monthly Budget</p>
+  <h1>家計バランス</h1>
+  <p class="sub">収入に対して、各支出がどのくらいの割合かを可視化します。</p>
+
+  <div class="card">
+    <p class="card-label">内訳の切り替え</p>
+    <div class="bd-row">
+      <select id="budget-select" aria-label="内訳を選択"></select>
+      <button class="btn-ghost" id="btn-new">＋新規</button>
+    </div>
+    <div class="bd-tools">
+      <input id="budget-name" type="text" placeholder="内訳の名前（例：6月の家計）">
+      <button class="btn-mini" id="btn-del-bd">この内訳を削除</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-label">月の収入（手取り）</p>
+    <div class="income-row"><span class="yen">¥</span><input id="income" class="num" type="text" inputmode="numeric" placeholder="300,000"></div>
+  </div>
+
+  <div class="warn" id="warn">収入を入力すると、支出の割合が表示されます。</div>
+
+  <div class="card summary" id="summary" style="display:none;">
+    <p class="card-label">収入の使いみち</p>
+    <div class="stack" id="stack"></div>
+    <div class="sum-grid">
+      <div class="sum-cell"><div class="k">支出合計</div><div class="v num" id="sum-exp">¥0</div></div>
+      <div class="sum-cell" style="text-align:right;"><div class="k">残り</div><div class="v num pos" id="sum-rest">¥0</div></div>
+    </div>
+    <span class="rate-pill num" id="rate">貯蓄率 —</span>
+  </div>
+
+  <div class="card">
+    <p class="card-label">支出を追加</p>
+    <div class="chips" id="chips"></div>
+    <div class="add-form">
+      <input class="name" id="in-name" type="text" placeholder="項目名（例：家賃）">
+      <input class="amt num" id="in-amt" type="text" inputmode="numeric" placeholder="金額">
+      <button class="btn-add" id="btn-add" aria-label="追加">＋</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-label">支出の内訳</p>
+    <div id="list"></div>
+    <button class="btn-clear" id="btn-clear">この内訳をすべてクリア</button>
+  </div>
+
+  <p class="foot">DATA IS SAVED ON THIS DEVICE ONLY</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY="kakei-balance-v2",OLD="kakei-balance";
+  var SEG=["--seg-0","--seg-1","--seg-2","--seg-3","--seg-4","--seg-5","--seg-6","--seg-7"];
+  var PRESETS=["家賃","食費","光熱費","通信費","交通費","日用品","保険","娯楽","貯蓄","その他"];
+  var store={budgets:[],currentId:null};
+  var editing=-1;
+  var $=function(id){return document.getElementById(id);};
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+  function yen(n){return "¥"+Math.round(n).toLocaleString("ja-JP");}
+  function parseNum(s){var n=parseInt(String(s).replace(/[^0-9]/g,""),10);return isNaN(n)?0:n;}
+  function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+  function load(){
+    try{
+      var s=localStorage.getItem(KEY);
+      if(s){store=JSON.parse(s);}
+      else{var old=localStorage.getItem(OLD);if(old){var d=JSON.parse(old);store.budgets=[{id:uid(),name:"内訳 1",income:d.income||0,items:d.items||[]}];}}
+    }catch(e){}
+    if(!store.budgets||!store.budgets.length){store={budgets:[{id:uid(),name:"内訳 1",income:0,items:[]}],currentId:null};}
+    if(!store.currentId||!store.budgets.some(function(b){return b.id===store.currentId;})){store.currentId=store.budgets[0].id;}
+    save();
+  }
+  function cur(){return store.budgets.filter(function(b){return b.id===store.currentId;})[0];}
+  function newBudget(){var b={id:uid(),name:"内訳 "+(store.budgets.length+1),income:0,items:[]};store.budgets.push(b);store.currentId=b.id;editing=-1;save();syncInputs();render();$("budget-name").focus();}
+  function delBudget(){
+    if(store.budgets.length<=1){var c=cur();c.income=0;c.items=[];c.name="内訳 1";editing=-1;save();syncInputs();render();return;}
+    if(!confirm("この内訳を削除しますか？"))return;
+    store.budgets=store.budgets.filter(function(b){return b.id!==store.currentId;});
+    store.currentId=store.budgets[0].id;editing=-1;save();syncInputs();render();
+  }
+  function clearCurrent(){if(!confirm("この内訳の収入と支出をすべて消しますか？"))return;var b=cur();b.income=0;b.items=[];editing=-1;save();syncInputs();render();}
+  function syncInputs(){var b=cur();$("income").value=b.income?b.income.toLocaleString("ja-JP"):"";$("budget-name").value=b.name;}
+  function render(){
+    var b=cur();
+    var sel=$("budget-select");sel.innerHTML="";
+    store.budgets.forEach(function(bd){var o=document.createElement("option");o.value=bd.id;o.textContent=bd.name||"（無題）";if(bd.id===store.currentId)o.selected=true;sel.appendChild(o);});
+    var inc=b.income,total=b.items.reduce(function(a,x){return a+x.amt;},0),rest=inc-total;
+    $("summary").style.display=inc>0?"block":"none";
+    $("warn").className=inc>0?"warn":"warn show";
+    var stack=$("stack");stack.innerHTML="";
+    if(inc>0){
+      b.items.forEach(function(it,i){var sp=document.createElement("span");sp.style.width=Math.min(100,(it.amt/inc)*100)+"%";sp.style.background=css(SEG[i%SEG.length]);sp.title=it.name;stack.appendChild(sp);});
+      var r=document.createElement("span");r.className="rest";r.style.width=Math.max(0,(rest/inc)*100)+"%";stack.appendChild(r);
+    }
+    $("sum-exp").textContent=yen(total);
+    var rEl=$("sum-rest");rEl.textContent=yen(rest);rEl.className="v num "+(rest>=0?"pos":"neg");
+    var rate=inc>0?Math.round((rest/inc)*100):0;
+    $("rate").textContent=inc>0?("貯蓄率 "+rate+"%（残り分）"):"貯蓄率 —";
+    var list=$("list");
+    if(b.items.length===0){list.innerHTML='<div class="empty">まだ支出がありません<span class="num">上のフォームから追加してください</span></div>';return;}
+    list.innerHTML="";
+    b.items.forEach(function(it,i){
+      var pct=inc>0?(it.amt/inc)*100:0;
+      var row=document.createElement("div");row.className="exp";
+      if(editing===i){
+        row.innerHTML='<div class="edit-form"><input class="e-name" type="text"><input class="e-amt num" type="text" inputmode="numeric"><button class="save">保存</button></div>';
+        var en=row.querySelector(".e-name"),ea=row.querySelector(".e-amt");
+        en.value=it.name;ea.value=it.amt.toLocaleString("ja-JP");
+        ea.addEventListener("input",function(){var n=parseNum(this.value);this.value=n?n.toLocaleString("ja-JP"):"";});
+        var commit=function(){var nm=en.value.trim(),am=parseNum(ea.value);if(!nm||am<=0)return;it.name=nm;it.amt=am;editing=-1;save();render();};
+        row.querySelector(".save").addEventListener("click",commit);
+        ea.addEventListener("keydown",function(e){if(e.key==="Enter")commit();});
+        setTimeout(function(){en.focus();},30);
+      }else{
+        row.innerHTML='<div class="exp-top"><span class="exp-name"></span><span class="exp-amt num"></span></div><div class="exp-bar"><i></i></div><div class="exp-meta"><span class="exp-pct">収入の '+(inc>0?pct.toFixed(1):"—")+'%</span><span class="exp-actions"><button class="lnk edit">編集</button><button class="lnk del">削除</button></span></div>';
+        row.querySelector(".exp-name").textContent=it.name;
+        row.querySelector(".exp-amt").textContent=yen(it.amt);
+        var bar=row.querySelector(".exp-bar i");bar.style.width=Math.min(100,pct)+"%";bar.style.background=css(SEG[i%SEG.length]);
+        row.querySelector(".edit").addEventListener("click",function(){editing=i;render();});
+        row.querySelector(".del").addEventListener("click",function(){b.items.splice(i,1);editing=-1;save();render();});
+      }
+      list.appendChild(row);
+    });
+  }
+  function addItem(){
+    var nm=$("in-name").value.trim(),am=parseNum($("in-amt").value);
+    if(!nm){$("in-name").focus();return;}
+    if(am<=0){$("in-amt").focus();return;}
+    cur().items.push({name:nm,amt:am});$("in-name").value="";$("in-amt").value="";editing=-1;save();render();$("in-name").focus();
+  }
+  $("income").addEventListener("input",function(){var n=parseNum(this.value);cur().income=n;this.value=n?n.toLocaleString("ja-JP"):"";save();render();});
+  $("in-amt").addEventListener("input",function(){var n=parseNum(this.value);this.value=n?n.toLocaleString("ja-JP"):"";});
+  $("in-amt").addEventListener("keydown",function(e){if(e.key==="Enter")addItem();});
+  $("btn-add").addEventListener("click",addItem);
+  $("btn-clear").addEventListener("click",clearCurrent);
+  $("btn-new").addEventListener("click",newBudget);
+  $("btn-del-bd").addEventListener("click",delBudget);
+  $("budget-select").addEventListener("change",function(){store.currentId=this.value;editing=-1;save();syncInputs();render();});
+  $("budget-name").addEventListener("input",function(){cur().name=this.value;save();var sel=$("budget-select");if(sel.selectedOptions[0])sel.selectedOptions[0].textContent=this.value||"（無題）";});
+  var chips=$("chips");
+  PRESETS.forEach(function(p){var c=document.createElement("button");c.className="chip";c.type="button";c.textContent=p;c.addEventListener("click",function(){$("in-name").value=p;$("in-amt").focus();});chips.appendChild(c);});
+  load();syncInputs();render();
+})();
+</script>
+</body>
+</html>
