@@ -1,0 +1,19 @@
+{
+  "name": "家計バランス",
+  "short_name": "家計バランス",
+  "description": "収入に対する支出の割合を可視化する家計管理ツール",
+  "start_url": "./kakeibalance.html",
+  "scope": "./",
+  "id": "./kakeibalance.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F3F4F0",
+  "theme_color": "#12211C",
+  "lang": "ja",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
